@@ -1,11 +1,23 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 import os, requests
 
 SERVING_URL = os.environ.get("SERVING_URL")  # Databricks serving invocations URL
 DBRX_PAT    = os.environ.get("DBRX_PAT")     # Databricks PAT (server-side only)
 ALLOW_ORIGIN= os.environ.get("ALLOW_ORIGIN", "*")
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='../frontend', static_url_path='')
+
+# Serve frontend files
+@app.route('/')
+def serve_frontend():
+    return send_from_directory(app.static_folder, 'index.html')
+
+# Handle other frontend routes (for client-side routing)
+@app.route('/<path:path>')
+def serve_other(path):
+    if os.path.exists(os.path.join(app.static_folder, path)):
+        return send_from_directory(app.static_folder, path)
+    return send_from_directory(app.static_folder, 'index.html')
 
 @app.after_request
 def add_cors(resp):
