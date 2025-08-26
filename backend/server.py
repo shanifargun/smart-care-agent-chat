@@ -39,11 +39,22 @@ def chat():
         messages = data.get('messages', [])
         
         # Format the payload for Databricks
+        # Extract the last user message as the main input
+        last_user_message = next((msg['content'] for msg in reversed(messages) if msg['role'] == 'user'), '')
+        
         payload = {
-            "messages": messages,
+            "input": [{"role": "user", "content": last_user_message}],
             "temperature": data.get('temperature', 0.7),
-            "max_tokens": data.get('max_tokens', 500),
+            "max_output_tokens": data.get('max_tokens', 500),
+            "stream": False
         }
+        
+        # Add conversation history if needed
+        if len(messages) > 1:
+            payload["context"] = {
+                "conversation_id": "default_conversation",
+                "user_id": "user_123"
+            }
         
         # Make the request to Databricks
         response = requests.post(
