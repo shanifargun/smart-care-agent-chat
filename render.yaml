@@ -4,9 +4,8 @@ services:
     env: python
     plan: starter
     region: oregon
-    rootDir: backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn server:app -w 2 -b 0.0.0.0:3000
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn backend.server:app -w 2 -b 0.0.0.0:3000"
     envVars:
       - key: SERVING_URL
         sync: false
