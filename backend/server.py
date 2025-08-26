@@ -67,8 +67,24 @@ def chat():
             timeout=90
         )
         
-        # Forward the response
-        return (response.text, response.status_code, {"Content-Type": "application/json"})
+        # Try to extract a readable reply from the Databricks response
+        try:
+            resp_json = response.json()
+            app.logger.info(f"Databricks response: {resp_json}")
+            # Try common fields
+            reply = resp_json.get('output') or resp_json.get('response')
+            if not reply and isinstance(resp_json, dict):
+                # Try OpenAI-like format
+                if 'choices' in resp_json and isinstance(resp_json['choices'], list):
+                    reply = resp_json['choices'][0].get('message', {}).get('content')
+                elif 'predictions' in resp_json and isinstance(resp_json['predictions'], list):
+                    reply = resp_json['predictions'][0].get('content')
+            if not reply:
+                reply = str(resp_json)
+        except Exception as e:
+            app.logger.error(f"Failed to parse Databricks response: {e}")
+            reply = response.text
+        return jsonify({"output": reply}), response.status_code
         
     except Exception as e:
         app.logger.error(f"Error processing request: {str(e)}")
