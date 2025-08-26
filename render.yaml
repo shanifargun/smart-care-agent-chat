@@ -2,7 +2,7 @@ services:
   - type: web
     name: smart-care-backend
     env: python
-    plan: free
+    plan: starter
     rootDir: backend
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn server:app -w 2 -b 0.0.0.0:3000
@@ -17,7 +17,7 @@ services:
   - type: web
     name: smart-care-frontend
     env: static
-    plan: free
+    plan: starter
     rootDir: frontend
     buildCommand: "echo 'Frontend build complete'"
     staticPublishPath: .
