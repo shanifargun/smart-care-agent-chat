@@ -80,11 +80,22 @@
         const responseData = await response.json();
         console.log('Response data:', responseData);
         
-        const text = responseData.output || 
-                    responseData.response || 
-                    (Array.isArray(responseData.predictions) && responseData.predictions[0]?.content) || 
-                    JSON.stringify(responseData);
-                    
+        let text = "";
+        if (typeof responseData === 'string') {
+          text = responseData;
+        } else if (responseData.output) {
+          text = responseData.output;
+        } else if (responseData.response) {
+          text = responseData.response;
+        } else if (Array.isArray(responseData.predictions) && responseData.predictions[0]?.content) {
+          text = responseData.predictions[0].content;
+        } else if (typeof responseData.choices?.[0]?.message?.content === 'string') {
+          text = responseData.choices[0].message.content;
+        } else if (typeof responseData === 'object') {
+          text = JSON.stringify(responseData, null, 2);
+        } else {
+          text = String(responseData);
+        }
         messages.push({role: "assistant", content: text});
         add("assistant", text);
       } catch (error) {
