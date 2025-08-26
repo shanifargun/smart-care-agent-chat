@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: smart-care-backend
+    env: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn server:app -w 2 -b 0.0.0.0:3000
+    envVars:
+      - key: SERVING_URL     # paste from Databricks Serving (invocations URL)
+        sync: false
+      - key: DBRX_PAT        # create as a Render Secret
+        sync: false
+      - key: ALLOW_ORIGIN    # set after frontend is live, e.g., https://smart-care-frontend.onrender.com
+        value: "*"
+
+  - type: static
+    name: smart-care-frontend
+    rootDir: frontend
+    staticPublishPath: .

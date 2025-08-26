@@ -1,0 +1,75 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Smart Care Agent</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body{font-family:system-ui,Arial;margin:0;height:100vh;display:grid;grid-template-rows:auto 1fr auto}
+    header{padding:12px 16px;border-bottom:1px solid #eee}
+    #chat{padding:12px 16px;overflow:auto}
+    .msg{margin:8px 0}
+    .me{font-weight:600}
+    .agent{white-space:pre-wrap}
+    form{display:flex;gap:8px;padding:12px 16px;border-top:1px solid #eee}
+    input{flex:1;padding:10px;border:1px solid #ccc;border-radius:8px}
+    button{padding:10px 16px;border:0;border-radius:8px;cursor:pointer}
+  </style>
+</head>
+<body>
+  <header><h3>Smart Care Agent</h3></header>
+  <div id="chat"></div>
+  <form id="f">
+    <input id="msg" placeholder="Ask anything (e.g., Who is high risk today?)" />
+    <button type="submit">Send</button>
+  </form>
+
+  <script>
+    // Update this AFTER backend deploy:
+    const API = "BACKEND_URL_PLACEHOLDER"; // e.g., https://smart-care-backend.onrender.com/api/chat
+
+    const chat = document.getElementById("chat");
+    const form = document.getElementById("f");
+    const input = document.getElementById("msg");
+    const messages = []; // keep full history
+
+    function add(role, text){
+      const d=document.createElement('div');
+      d.className="msg " + (role==="user"?"me":"agent");
+      d.textContent = (role==="user" ? "You: " : "Agent: ") + text;
+      chat.appendChild(d);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    async function send(content){
+      messages.push({role:"user", content});
+      add("user", content);
+
+      const r = await fetch(API, {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({ input: messages }),
+      });
+      const j = await r.json();
+      const text = j.output || j.response || (Array.isArray(j.predictions) && j.predictions[0]?.content) || JSON.stringify(j);
+      messages.push({role:"assistant", content: text});
+      add("assistant", text);
+    }
+
+    // Deep-link: ?patient_id=...
+    const params = new URLSearchParams(location.search);
+    const pid = params.get("patient_id");
+    if (pid) {
+      send(`Show a concise 360 for patient ${pid} and list the 5 most recent encounters. Then propose an outreach draft but do not send.`);
+    }
+
+    form.onsubmit = (e)=>{
+      e.preventDefault();
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = "";
+      send(text);
+    };
+  </script>
+</body>
+</html>
