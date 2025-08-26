@@ -5,7 +5,7 @@ services:
     plan: starter
     region: oregon
     buildCommand: pip install -r requirements.txt
-    startCommand: "gunicorn backend.server:app -w 2 -b 0.0.0.0:3000"
+    startCommand: "cd backend && gunicorn server:app -w 2 -b 0.0.0.0:3000"
     envVars:
       - key: SERVING_URL
         sync: false
