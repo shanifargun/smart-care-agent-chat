@@ -41,19 +41,37 @@
       chat.scrollTop = chat.scrollHeight;
     }
 
-    async function send(content){
-      messages.push({role:"user", content});
+    async function send(content) {
+      messages.push({role: "user", content});
       add("user", content);
 
-      const r = await fetch(API, {
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body: JSON.stringify({ input: messages }),
-      });
-      const j = await r.json();
-      const text = j.output || j.response || (Array.isArray(j.predictions) && j.predictions[0]?.content) || JSON.stringify(j);
-      messages.push({role:"assistant", content: text});
-      add("assistant", text);
+      try {
+        const response = await fetch(API, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ input: messages }),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Server error:', errorText);
+          throw new Error(`Server responded with status ${response.status}: ${errorText}`);
+        }
+
+        const responseData = await response.json();
+        console.log('Response data:', responseData);
+        
+        const text = responseData.output || 
+                    responseData.response || 
+                    (Array.isArray(responseData.predictions) && responseData.predictions[0]?.content) || 
+                    JSON.stringify(responseData);
+                    
+        messages.push({role: "assistant", content: text});
+        add("assistant", text);
+      } catch (error) {
+        console.error('Error sending message:', error);
+        add("system", `Error: ${error.message}. Please check the browser console for more details.`);
+      }
     }
 
     // Deep-link: ?patient_id=...
