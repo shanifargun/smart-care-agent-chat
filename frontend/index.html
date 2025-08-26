@@ -25,8 +25,12 @@
   </form>
 
   <script>
-    // Update this AFTER backend deploy:
+    // API configuration
     const API = "https://smart-care-agent-chat.onrender.com/api/chat";
+    const DBRX_PAT = ""; // This will be set by the backend
+    
+    // Add loading state
+    let isLoading = false;
 
     const chat = document.getElementById("chat");
     const form = document.getElementById("f");
@@ -42,14 +46,29 @@
     }
 
     async function send(content) {
-      messages.push({role: "user", content});
+      // Add user message to chat
+      const userMessage = { role: "user", content };
+      messages.push(userMessage);
       add("user", content);
 
       try {
+        // Format messages for Databricks endpoint
+        const formattedMessages = messages.map(msg => ({
+          role: msg.role,
+          content: msg.content
+        }));
+
         const response = await fetch(API, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ input: messages }),
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${DBRX_PAT}`
+          },
+          body: JSON.stringify({
+            messages: formattedMessages,
+            temperature: 0.7,
+            max_tokens: 500
+          }),
         });
 
         if (!response.ok) {
@@ -81,12 +100,32 @@
       send(`Show a concise 360 for patient ${pid} and list the 5 most recent encounters. Then propose an outreach draft but do not send.`);
     }
 
-    form.onsubmit = (e)=>{
+    form.onsubmit = async (e) => {
       e.preventDefault();
       const text = input.value.trim();
-      if (!text) return;
+      if (!text || isLoading) return;
+      
+      // Disable form while loading
+      isLoading = true;
+      const button = form.querySelector('button');
+      const buttonText = button.textContent;
+      button.disabled = true;
+      button.textContent = 'Sending...';
+      
+      try {
+        await send(text);
+      } catch (error) {
+        console.error('Error:', error);
+        add("system", `Error: ${error.message}`);
+      } finally {
+        // Re-enable form
+        isLoading = false;
+        button.disabled = false;
+        button.textContent = buttonText;
+        input.focus();
+      }
+      
       input.value = "";
-      send(text);
     };
   </script>
 </body>

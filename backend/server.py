@@ -30,15 +30,38 @@ def add_cors(resp):
 def chat():
     if request.method == "OPTIONS":
         return ("", 204)
-    assert SERVING_URL and DBRX_PAT, "Missing SERVING_URL or DBRX_PAT"
-    payload = request.get_json(force=True)
-    r = requests.post(
-        SERVING_URL,
-        headers={"Authorization": f"Bearer {DBRX_PAT}", "Content-Type": "application/json"},
-        json=payload,
-        timeout=90,
-    )
-    return (r.text, r.status_code, {"Content-Type":"application/json"})
+        
+    if not SERVING_URL or not DBRX_PAT:
+        return jsonify({"error": "Server configuration error: Missing SERVING_URL or DBRX_PAT"}), 500
+    
+    try:
+        data = request.get_json(force=True)
+        messages = data.get('messages', [])
+        
+        # Format the payload for Databricks
+        payload = {
+            "messages": messages,
+            "temperature": data.get('temperature', 0.7),
+            "max_tokens": data.get('max_tokens', 500),
+        }
+        
+        # Make the request to Databricks
+        response = requests.post(
+            SERVING_URL,
+            headers={
+                "Authorization": f"Bearer {DBRX_PAT}",
+                "Content-Type": "application/json"
+            },
+            json=payload,
+            timeout=90
+        )
+        
+        # Forward the response
+        return (response.text, response.status_code, {"Content-Type": "application/json"})
+        
+    except Exception as e:
+        app.logger.error(f"Error processing request: {str(e)}")
+        return jsonify({"error": f"Error processing request: {str(e)}"}), 500
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "3000")))
